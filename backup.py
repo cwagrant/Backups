@@ -48,12 +48,12 @@ backupLocation = os.path.join(os.getcwd(), backupLocation)
 snapshotLocation = os.path.join(backupLocation, snapshotLocation)
 uiLocation = os.path.join(backupLocation, uiLocation)
 logLocation = os.path.join(backupLocation, logLocation)
+combatLogLoc = os.path.join(wowDir, 'Logs')
 
 # File Names 
 snapshotFile = os.path.join(os.getcwd(), backupLocation, snapshotLocation, 'snapshot-' + currentTS + '.7z')
 uiFile = os.path.join(os.getcwd(), backupLocation, uiLocation, 'ui-' + currentTS + '7z')
 logFile = os.path.join(os.getcwd(), backupLocation, logLocation, 'log-' + currentTS + '.7z')
-combatLogFile = os.path.join(wowDir, 'Logs', 'WoWCombatLog.txt')
 combatLogTemp = os.path.join(wowDir, 'Logs', 'WoWCombatLog-tmp.txt')
 
 def Backup(outFile, *inFiles):
@@ -69,6 +69,17 @@ def Cleanup(location, olderThanDays):
         
         if os.path.isfile(file) and pastFileToRemove in fileName:
             os.remove(file)
+
+def FindCombatLog():
+
+    ''' As of 9.0.5 WoW now adds a time stamp to combat logs. Need to find the most recent one.'''
+
+    files = glob.glob(os.path.join(combatLogLoc, 'WoWCombatLog-*.txt'))
+    files.sort(key=os.path.getmtime, reverse=True)
+    for file in glob.glob(os.path.join(combatLogLoc, 'WoWCombatLog-*.txt')):
+        fileName = os.path.split(file)[1]
+        if fileName != "WoWCombatLog-tmp.txt":
+            return fileName
  
 
 if __name__ == '__main__':
@@ -86,6 +97,9 @@ if __name__ == '__main__':
         os.mkdir(uiLocation)
     if not os.path.isdir(logLocation):
         os.mkdir(logLocation)
+
+    if FindCombatLog():
+        combatLogFile = os.path.join(combatLogLoc, FindCombatLog())
     
     if fullBackupDate.lower() == currentDay.lower():
         Backup(uiFile, 'WTF', 'Interface')
@@ -96,6 +110,7 @@ if __name__ == '__main__':
         if snapshotDaysKept > 0:
             Cleanup(snapshotLocation, snapshotDaysKept)
     
+
     if os.path.isfile(combatLogFile):
         shutil.copy(combatLogFile, combatLogTemp)
         Backup(logFile, combatLogTemp)
@@ -104,5 +119,10 @@ if __name__ == '__main__':
 
         try:
             os.remove(combatLogFile)
+        except:
+            pass
+        
+        try:
+            os.remove(combatLogTemp)
         except:
             pass
